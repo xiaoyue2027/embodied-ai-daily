@@ -1,0 +1,68 @@
+name: 具身智能日报 - 测试
+
+on:
+  workflow_dispatch:
+    inputs:
+      keyword:
+        description: "测试抓取的关键词（留空跑全部板块）"
+        required: false
+        default: ""
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install playwright markdown weasyprint
+          sudo apt-get install -y libpango-1.0-0 libpangoft2-1.0-0 libpangocairo-1.0-0
+          python -m playwright install --with-deps chromium
+
+      - name: 跑单元测试
+        run: python scripts/test_simplify.py
+
+      - name: 测试抓取（不推送）
+        env:
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+        run: |
+          if [ -z "$TAVILY_API_KEY" ]; then
+            echo "⚠️ 未配置 TAVILY_API_KEY，跳过抓取"
+            echo "请去 Settings → Secrets 添加 TAVILY_API_KEY"
+            exit 1
+          fi
+          mkdir -p /tmp
+          python scripts/fetch_websearch.py --output /tmp/test.json --max-results 2
+          cat /tmp/test.json | head -30
+
+      - name: 测试 PDF 生成
+        run: |
+          # 用测试数据生成 PDF
+          echo "# 测试日报" > /tmp/test.md
+          echo "" >> /tmp/test.md
+          echo "## 一、行业信息" >> /tmp/test.md
+          echo "" >> /tmp/test.md
+          echo "### 1. 测试条目" >> /tmp/test.md
+          echo "" >> /tmp/test.md
+          echo "测试内容" >> /tmp/test.md
+          python scripts/export_pdf.py /tmp/test.md /tmp/test.pdf
+          ls -la /tmp/test.pdf
+
+      - name: ✅ 测试结果
+        if: always()
+        run: |
+          echo "================================"
+          echo "✅ 测试完成"
+          echo "   - 单元测试: 跑过"
+          echo "   - Tavily 抓取: 跑过"
+          echo "   - PDF 生成: 跑过"
+          echo "================================"
+          echo "如需推送真实日报，请运行 'daily.yml' workflow"

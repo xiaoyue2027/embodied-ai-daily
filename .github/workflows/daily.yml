@@ -1,0 +1,121 @@
+name: 具身智能日报
+
+on:
+  # 1. 定时触发：北京时间每天 9:00（UTC 1:00）
+  schedule:
+    - cron: "0 1 * * *"
+
+  # 2. 手动触发（workflow_dispatch），可指定日期
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "日报日期 (YYYY-MM-DD)，留空用今天"
+        required: false
+        default: ""
+      push:
+        description: "推送渠道（wechat_work / 空=不推送）"
+        required: false
+        default: "wechat_work"
+      push_pdf:
+        description: "是否同时推送 PDF"
+        required: false
+        default: "true"
+
+  # 3. 允许从其他 workflow 触发
+  workflow_call:
+
+permissions:
+  contents: write
+
+jobs:
+  daily-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v4
+
+      - name: 🐍 安装 Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: 📦 安装系统依赖（WeasyPrint 字体）
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpango-1.0-0 libpangoft2-1.0-0 libpangocairo-1.0-0
+
+      - name: 📦 安装 Python 依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install playwright markdown weasyprint
+          python -m playwright install --with-deps chromium
+
+      - name: 🔍 自检：simplify 单元测试
+        run: |
+          python scripts/test_simplify.py
+
+      - name: 🔍 抓取当日信息（Tavily）
+        env:
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+        run: |
+          python scripts/fetch_websearch.py --output /tmp/websearch_today.json
+          echo "📊 抓取完成，文件大小："
+          wc -c /tmp/websearch_today.json
+
+      - name: 📰 生成日报 + PDF
+        env:
+          WECHAT_WORK_WEBHOOK: ${{ secrets.WECHAT_WORK_WEBHOOK }}
+        run: |
+          DATE="${DATE:-$(date +%Y-%m-%d)}"
+          echo "DATE=$DATE" >> $GITHUB_ENV
+          PUSH_FLAG=""
+          PUSH_PDF_FLAG=""
+          if [ -n "${{ secrets.WECHAT_WORK_WEBHOOK }}" ]; then
+            PUSH_FLAG="--push wechat_work"
+            PUSH_PDF_FLAG="--push-pdf"
+          fi
+          python scripts/run_daily.py \
+            --input /tmp/websearch_today.json \
+            --no-browser \
+            --date "$DATE" \
+            --pdf \
+            $PUSH_FLAG \
+            $PUSH_PDF_FLAG
+          echo "✓ 日报生成完成"
+
+      - name: 📤 上传日报为 Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: embodied-ai-daily-${{ env.DATE }}
+          path: |
+            daily_reports/embodied_ai_${{ env.DATE }}.md
+            daily_reports/embodied_ai_${{ env.DATE }}.pdf
+            daily_reports/monthly/
+          retention-days: 90
+          if-no-files-found: warn
+
+      - name: 💾 提交日报到仓库（私有仓库才开启）
+        if: ${{ false }}  # 公开仓库不自动 commit 日报（避免商业内容公开）
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add daily_reports/ 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "无新日报，跳过提交"
+          else
+            git commit -m "chore: 自动日报 ${{ env.DATE }}" || true
+            git push || echo "推送失败（可能是权限问题）"
+          fi
+
+      - name: ✅ 总结
+        if: always()
+        run: |
+          echo "============================================"
+          echo "📅 日报: ${{ env.DATE }}"
+          echo "📁 Markdown: daily_reports/embodied_ai_${{ env.DATE }}.md"
+          echo "📄 PDF: daily_reports/embodied_ai_${{ env.DATE }}.pdf"
+          echo "🔗 Artifact: 见上方上传结果"
+          echo "============================================"
