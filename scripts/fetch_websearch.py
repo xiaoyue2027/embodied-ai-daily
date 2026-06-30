@@ -53,10 +53,21 @@ INTERVIEW_QUERIES = [
 ]
 
 MARKETING_QUERIES = [
-    "人形机器人 发布会 联名",
-    "具身智能 品牌 营销",
-    "机器人 跨界 联名 出圈",
-    "人形机器人 视频 爆款",
+    # 通用品牌/营销动作
+    "具身智能 品牌 发布会",
+    "人形机器人 品牌 营销 活动",
+    "机器人 展会 表演",
+    "机器人 晚会 直播 综艺",
+    "机器人 短视频 爆款 小红书",
+    "机器人 抖音 KOL 达人",
+    "机器人 品牌合作 联名",
+    "机器人 体验 概念 线下快闪",
+    # 头部公司具体动作
+    "宇树 视频 出圈 营销",
+    "优必选 发布会 现场 表演",
+    "智元 品牌活动 营销",
+    "银河通用 视频 体验",
+    "傅利叶 线下 活动",
 ]
 
 # 优先来源（中文媒体 + 头部垂类）
@@ -73,6 +84,9 @@ PRIORITY_DOMAINS = [
     "stcn.com", "21jingji.com",
     # 社交
     "xiaohongshu.com", "mp.weixin.qq.com",
+    # 短视频 / 视频平台
+    "douyin.com", "bilibili.com", "kuaishou.com",
+    "youtube.com", "v.qq.com", "ixigua.com",
 ]
 
 EXCLUDE_DOMAINS = [
