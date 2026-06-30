@@ -17,9 +17,9 @@ on:
         required: false
         default: "wechat_work"
       push_pdf:
-        description: "PDF 推送方式：file=企业微信文件消息（IP 白名单固定时用）/ link=发 GitHub Release 链接（IP 不固定时用）"
+        description: "PDF 推送方式：file=企业微信文件消息（IP 白名单设为 * 时用）/ link=发 GitHub Release 链接"
         required: false
-        default: "link"
+        default: "file"
 
   # 3. 允许从其他 workflow 触发
   workflow_call:
