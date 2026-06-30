@@ -17,9 +17,9 @@ on:
         required: false
         default: "wechat_work"
       push_pdf:
-        description: "是否同时推送 PDF（GitHub Actions IP 不固定，企业微信常拦截，建议 false）"
+        description: "PDF 推送方式：file=企业微信文件消息（IP 白名单固定时用）/ link=发 GitHub Release 链接（IP 不固定时用）"
         required: false
-        default: "false"
+        default: "link"
 
   # 3. 允许从其他 workflow 触发
   workflow_call:
@@ -77,12 +77,7 @@ jobs:
           PUSH_PDF_FLAG=""
           if [ -n "$WECHAT_WORK_WEBHOOK" ]; then
             PUSH_FLAG="--push wechat_work"
-            # GitHub Actions runner IP 不固定，企业微信会拦截 PDF 文件消息
-            # 只有用户显式开启才推 PDF（默认 false）
-            if [ "${{ inputs.push_pdf }}" = "true" ]; then
-              PUSH_PDF_FLAG="--push-pdf"
-            fi
-            echo "🔑 Webhook 已配置（长度: ${#WECHAT_WORK_WEBHOOK} 字符, 推PDF: $PUSH_PDF_FLAG）"
+            echo "🔑 Webhook 已配置（长度: ${#WECHAT_WORK_WEBHOOK} 字符, 推PDF: ${{ inputs.push_pdf }}）"
           else
             echo "⚠️ WECHAT_WORK_WEBHOOK 未配置"
           fi
@@ -91,11 +86,68 @@ jobs:
             --no-browser \
             --date "$DATE" \
             --pdf \
-            $PUSH_FLAG \
-            $PUSH_PDF_FLAG
-          echo "✓ 日报生成完成"
+            $PUSH_FLAG
+          echo "✓ 日报 + PDF 生成完成"
           echo "📁 生成的文件："
           ls -la "$DAILY_REPORTS_DIR"
+
+      - name: 📦 上传 PDF 到 GitHub Release
+        if: ${{ inputs.push_pdf == 'link' && env.DATE != '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "📦 创建/更新 Release: daily-${{ env.DATE }}"
+          # 用 gh CLI 创建 release 并上传 PDF
+          gh release create "daily-${{ env.DATE }}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "具身智能日报 ${{ env.DATE }}" \
+            --notes "自动发布的日报 PDF" \
+            --target main \
+            "daily_reports/embodied_ai_${{ env.DATE }}.pdf" \
+            2>&1 || gh release upload "daily-${{ env.DATE }}" \
+              --repo "$GITHUB_REPOSITORY" \
+              "daily_reports/embodied_ai_${{ env.DATE }}.pdf" \
+              2>&1
+          echo "📎 Release URL: https://github.com/$GITHUB_REPOSITORY/releases/download/daily-${{ env.DATE }}/embodied_ai_${{ env.DATE }}.pdf"
+
+      - name: 📤 推送 PDF 链接到企业微信
+        if: ${{ inputs.push_pdf == 'link' && inputs.push == 'wechat_work' }}
+        env:
+          WECHAT_WORK_WEBHOOK: ${{ secrets.WECHAT_WORK_WEBHOOK }}
+        run: |
+          PDF_URL="https://github.com/${{ github.repository }}/releases/download/daily-${{ env.DATE }}/embodied_ai_${{ env.DATE }}.pdf"
+          curl -s -X POST "$WECHAT_WORK_WEBHOOK" \
+            -H "Content-Type: application/json" \
+            -d "$(python3 -c "
+import json
+payload = {
+    'msgtype': 'markdown',
+    'markdown': {
+        'content': '''## 📄 完整 PDF 下载
+
+**具身智能日报 ${{ env.DATE }}** 已生成
+
+📎 **点击下载**：[具身智能日报-${{ env.DATE }}.pdf]($PDF_URL)
+
+> PDF 包含全部条目的完整版（企业微信 markdown 显示有字节限制）
+'''
+    }
+}
+print(json.dumps(payload))
+")"
+          echo "✓ PDF 链接已推送"
+
+      - name: 📎 直接推 PDF 文件到企业微信
+        if: ${{ inputs.push_pdf == 'file' }}
+        env:
+          WECHAT_WORK_WEBHOOK: ${{ secrets.WECHAT_WORK_WEBHOOK }}
+        run: |
+          python scripts/run_daily.py \
+            --input /tmp/websearch_today.json \
+            --no-browser \
+            --date "${{ env.DATE }}" \
+            --push wechat_work --push-pdf 2>&1 | tail -10
+          echo "⚠️ 注意：GitHub Actions IP 每次都变，可能被企业微信拦截"
 
       - name: 📤 上传日报为 Artifact
         uses: actions/upload-artifact@v4
