@@ -78,6 +78,9 @@ jobs:
           if [ -n "$WECHAT_WORK_WEBHOOK" ]; then
             PUSH_FLAG="--push wechat_work"
             PUSH_PDF_FLAG="--push-pdf"
+            echo "🔑 Webhook 已配置（长度: ${#WECHAT_WORK_WEBHOOK} 字符）"
+          else
+            echo "⚠️ WECHAT_WORK_WEBHOOK 未配置"
           fi
           python scripts/run_daily.py \
             --input /tmp/websearch_today.json \
@@ -87,6 +90,8 @@ jobs:
             $PUSH_FLAG \
             $PUSH_PDF_FLAG
           echo "✓ 日报生成完成"
+          echo "📁 生成的文件："
+          ls -la "$DAILY_REPORTS_DIR"
 
       - name: 📤 上传日报为 Artifact
         uses: actions/upload-artifact@v4
