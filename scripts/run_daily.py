@@ -31,7 +31,7 @@ from typing import Any, Dict, List, Optional, Union
 
 # ---------------------- 配置 ----------------------
 
-OUTPUT_DIR = Path("/workspace/daily_reports")
+OUTPUT_DIR = Path(os.environ.get("DAILY_REPORTS_DIR", "/workspace/daily_reports"))
 SCRIPT_DIR = Path(__file__).parent
 
 # 主流媒体 WebSearch 关键词组合

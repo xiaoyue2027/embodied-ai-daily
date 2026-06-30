@@ -68,12 +68,14 @@ jobs:
       - name: 📰 生成日报 + PDF
         env:
           WECHAT_WORK_WEBHOOK: ${{ secrets.WECHAT_WORK_WEBHOOK }}
+          DAILY_REPORTS_DIR: ${{ github.workspace }}/daily_reports
         run: |
+          mkdir -p "$DAILY_REPORTS_DIR"
           DATE="${DATE:-$(date +%Y-%m-%d)}"
           echo "DATE=$DATE" >> $GITHUB_ENV
           PUSH_FLAG=""
           PUSH_PDF_FLAG=""
-          if [ -n "${{ secrets.WECHAT_WORK_WEBHOOK }}" ]; then
+          if [ -n "$WECHAT_WORK_WEBHOOK" ]; then
             PUSH_FLAG="--push wechat_work"
             PUSH_PDF_FLAG="--push-pdf"
           fi

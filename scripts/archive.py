@@ -23,6 +23,7 @@
 
 import argparse
 import json
+import os
 import re
 import shutil
 import sys
@@ -32,8 +33,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 
-DAILY_DIR = Path("/workspace/daily_reports")
-ARCHIVE_DIR = Path("/workspace/daily_reports/monthly")
+DAILY_DIR = Path(os.environ.get("DAILY_REPORTS_DIR", "/workspace/daily_reports"))
+ARCHIVE_DIR = Path(os.environ.get("DAILY_REPORTS_DIR", "/workspace/daily_reports")) / "monthly"
 
 
 # ---------------------- 归档 ----------------------
