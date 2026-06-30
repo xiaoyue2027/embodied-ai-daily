@@ -233,8 +233,8 @@ def render_markdown(
     top_industry = sections["industry"][:3]
     if top_industry:
         lines.append("**今日 TOP 3 行业信号**")
-        for it in top_industry:
-            lines.append(f"1. {it.get('title', '')}")
+        for i, it in enumerate(top_industry, 1):
+            lines.append(f"{i}. {it.get('title', '')}")
         lines.append("")
 
     # KOL 数据补充
