@@ -42,6 +42,17 @@ def find_chinese_fonts() -> List[str]:
     return [p for p in candidates if Path(p).exists()]
 
 
+def find_emoji_fonts() -> List[str]:
+    """查找系统中可用的 emoji 字体"""
+    candidates = [
+        "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf",
+        "/usr/share/fonts/truetype/noto/NotoEmoji-Regular.ttf",
+        "/System/Library/Fonts/Apple Color Emoji.ttc",
+        "C:/Windows/Fonts/seguiemj.ttf",
+    ]
+    return [p for p in candidates if Path(p).exists()]
+
+
 # ---------------------- 样式模板 ----------------------
 
 def build_css(fonts: List[str]) -> str:
@@ -50,6 +61,16 @@ def build_css(fonts: List[str]) -> str:
         font_family = ', '.join(f'"{Path(f).name}"' for f in fonts[:3])
     else:
         font_family = '"DejaVu Sans", sans-serif'
+
+    # 拼接 emoji 字体 fallback（让 ★ ⭐ 🏭 等符号能正常显示）
+    emoji_fonts = [
+        '"/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf"',
+        '"Noto Color Emoji"',
+        '"Apple Color Emoji"',
+        '"Segoe UI Emoji"',
+        '"DejaVu Sans"',
+    ]
+    font_family = f"{font_family}, " + ", ".join(emoji_fonts)
 
     return f"""
 @page {{

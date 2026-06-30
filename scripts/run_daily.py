@@ -207,7 +207,7 @@ def render_markdown(
         for i, it in enumerate(items, 1):
             title = it.get("title", "（无标题）")
             url = it.get("url", "")
-            stars = "⭐" * max(1, min(5, it.get("importance", 0) // 20 + 1))
+            stars = "★" * max(1, min(5, it.get("importance", 0) // 20 + 1))
             lines.append(f"### {i}. [{title}]({url})（重要性：{stars}）")
             lines.append("")
             if it.get("source"):
