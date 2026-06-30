@@ -17,9 +17,9 @@ on:
         required: false
         default: "wechat_work"
       push_pdf:
-        description: "是否同时推送 PDF"
+        description: "是否同时推送 PDF（GitHub Actions IP 不固定，企业微信常拦截，建议 false）"
         required: false
-        default: "true"
+        default: "false"
 
   # 3. 允许从其他 workflow 触发
   workflow_call:
@@ -77,8 +77,12 @@ jobs:
           PUSH_PDF_FLAG=""
           if [ -n "$WECHAT_WORK_WEBHOOK" ]; then
             PUSH_FLAG="--push wechat_work"
-            PUSH_PDF_FLAG="--push-pdf"
-            echo "🔑 Webhook 已配置（长度: ${#WECHAT_WORK_WEBHOOK} 字符）"
+            # GitHub Actions runner IP 不固定，企业微信会拦截 PDF 文件消息
+            # 只有用户显式开启才推 PDF（默认 false）
+            if [ "${{ inputs.push_pdf }}" = "true" ]; then
+              PUSH_PDF_FLAG="--push-pdf"
+            fi
+            echo "🔑 Webhook 已配置（长度: ${#WECHAT_WORK_WEBHOOK} 字符, 推PDF: $PUSH_PDF_FLAG）"
           else
             echo "⚠️ WECHAT_WORK_WEBHOOK 未配置"
           fi
