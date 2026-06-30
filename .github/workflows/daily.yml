@@ -61,9 +61,15 @@ jobs:
         env:
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
         run: |
-          python scripts/fetch_websearch.py --output /tmp/websearch_today.json
+          echo "🔑 TAVILY_API_KEY 长度: ${#TAVILY_API_KEY}"
+          python scripts/fetch_websearch.py --output /tmp/websearch_today.json 2>&1 | tail -25
           echo "📊 抓取完成，文件大小："
           wc -c /tmp/websearch_today.json
+          if [ -s /tmp/websearch_today.json ]; then
+            echo "📊 抓取条数: $(python3 -c "import json; print(len(json.load(open('/tmp/websearch_today.json'))))")"
+          else
+            echo "⚠️ 文件为空！抓取失败"
+          fi
 
       - name: 📰 生成日报 + PDF
         env:
