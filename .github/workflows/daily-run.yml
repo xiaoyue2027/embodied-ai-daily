@@ -122,25 +122,10 @@ jobs:
           WECHAT_WORK_WEBHOOK: ${{ secrets.WECHAT_WORK_WEBHOOK }}
         run: |
           PDF_URL="https://github.com/${{ github.repository }}/releases/download/daily-${{ env.DATE }}/embodied_ai_${{ env.DATE }}.pdf"
+          PAYLOAD=$(python3 scripts/push_pdf_link.py "$PDF_URL" "${{ env.DATE }}")
           curl -s -X POST "$WECHAT_WORK_WEBHOOK" \
             -H "Content-Type: application/json" \
-            -d "$(python3 -c "
-import json
-payload = {
-    'msgtype': 'markdown',
-    'markdown': {
-        'content': '''## 📄 完整 PDF 下载
-
-**具身智能日报 ${{ env.DATE }}** 已生成
-
-📎 **点击下载**：[具身智能日报-${{ env.DATE }}.pdf]($PDF_URL)
-
-> PDF 包含全部条目的完整版（企业微信 markdown 显示有字节限制）
-'''
-    }
-}
-print(json.dumps(payload))
-")"
+            -d "$PAYLOAD"
           echo "✓ PDF 链接已推送"
 
       - name: 📎 直接推 PDF 文件到企业微信
