@@ -207,7 +207,8 @@ def render_markdown(
         for i, it in enumerate(items, 1):
             title = it.get("title", "（无标题）")
             url = it.get("url", "")
-            stars = "★" * max(1, min(5, it.get("importance", 0) // 20 + 1))
+            # 重要性用 A 字符（避免 PDF 字体问题）
+            stars = "A" * max(1, min(5, it.get("importance", 0) // 20 + 1))
             lines.append(f"### {i}. [{title}]({url})（重要性：{stars}）")
             lines.append("")
             if it.get("source"):
@@ -329,6 +330,30 @@ def main():
     all_items = list(websearch_items)
     for ch_items in kol_data.get("results", {}).values():
         all_items.extend(ch_items)
+
+    # 去重：按 URL 完全相同 + 标题前 20 字相同
+    import re
+    seen_urls = set()
+    seen_title_keys = set()
+    deduped_items = []
+    for it in all_items:
+        url = it.get("url", "")
+        title = (it.get("title", "") or "").strip()
+        # 标题归一：去标点 + 留前 20 字
+        norm_title = re.sub(r"[^\w\u4e00-\u9fff]+", "", title)[:20]
+        if url and url in seen_urls:
+            continue
+        if norm_title and norm_title in seen_title_keys:
+            continue
+        if url:
+            seen_urls.add(url)
+        if norm_title:
+            seen_title_keys.add(norm_title)
+        deduped_items.append(it)
+    dup_count = len(all_items) - len(deduped_items)
+    if dup_count > 0:
+        print(f"[去重] 移除 {dup_count} 条重复新闻（按 URL + 标题前 20 字）", file=sys.stderr)
+    all_items = deduped_items
 
     # Step 3: 分类
     sections = organize_sections(all_items)
