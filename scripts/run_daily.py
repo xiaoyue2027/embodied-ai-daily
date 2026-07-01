@@ -336,28 +336,62 @@ def main():
     for ch_items in kol_data.get("results", {}).values():
         all_items.extend(ch_items)
 
-    # 去重：按 URL 完全相同 + 标题前 20 字相同
+    # 去重：三级策略
+    #   1. URL 完全相同 → 跳过
+    #   2. 核心公司 + 关键数字（如"智平方"+"200亿"）相同 → 视为同一新闻
+    #   3. 标题前 15 字相同 → 视为同一新闻
     import re
     seen_urls = set()
+    seen_signatures = set()
     seen_title_keys = set()
     deduped_items = []
+
+    # 核心公司/品牌词（含 ETF 等金融产品）
+    KEY_ENTITIES = [
+        "智平方", "自变量", "跨维智能", "宇树", "智元", "银河通用", "傅利叶",
+        "优必选", "星动纪元", "逐际动力", "特斯联", "Figure", "Optimus",
+        "易方达", "汇添富", "华夏", "国证", "机器人ETF", "机器人指数", "机器人产业",
+        "融资", "估值", "具身", "B轮", "C轮", "A轮",
+    ]
+    # 关键金额/数字模式
+    KEY_NUMBERS = re.compile(r"(\d+)\s*[亿万]")
+
     for it in all_items:
         url = it.get("url", "")
         title = (it.get("title", "") or "").strip()
-        # 标题归一：去标点 + 留前 20 字
-        norm_title = re.sub(r"[^\w\u4e00-\u9fff]+", "", title)[:20]
+        summary = (it.get("summary", "") or "").strip()
+
         if url and url in seen_urls:
+            continue
+
+        # 归一化标题
+        norm_title = re.sub(r"[^\w\u4e00-\u9fff]+", "", title)[:15]
+
+        # 提取"公司+数字"签名
+        entities_in_title = [e for e in KEY_ENTITIES if e in title or e in summary[:200]]
+        numbers_in_title = KEY_NUMBERS.findall(title + " " + summary[:100])
+        signature = ""
+        if entities_in_title and numbers_in_title:
+            # 用最大数字（最可能是核心数字）+ 第一个公司
+            biggest_num = max(int(n) for n in numbers_in_title)
+            signature = f"{entities_in_title[0]}_{biggest_num}"
+
+        if signature and signature in seen_signatures:
             continue
         if norm_title and norm_title in seen_title_keys:
             continue
+
         if url:
             seen_urls.add(url)
+        if signature:
+            seen_signatures.add(signature)
         if norm_title:
             seen_title_keys.add(norm_title)
         deduped_items.append(it)
+
     dup_count = len(all_items) - len(deduped_items)
     if dup_count > 0:
-        print(f"[去重] 移除 {dup_count} 条重复新闻（按 URL + 标题前 20 字）", file=sys.stderr)
+        print(f"[去重] 移除 {dup_count} 条重复新闻（URL + 公司+数字签名 + 标题）", file=sys.stderr)
     all_items = deduped_items
 
     # Step 3: 分类
