@@ -1,4 +1,4 @@
-name: 具身智能日报
+name: Embodied AI Daily
 
 on:
   # 1. 定时触发：北京时间每天 9:00（UTC 1:00）

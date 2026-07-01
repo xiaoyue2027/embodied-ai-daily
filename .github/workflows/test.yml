@@ -1,4 +1,4 @@
-name: 具身智能日报 - 测试
+name: Embodied AI Daily - Test
 
 on:
   workflow_dispatch:
