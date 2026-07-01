@@ -25,11 +25,14 @@ if BASHRC.exists():
                 os.environ[kv[0]] = val
 
 SKILL_DIR = Path(os.environ.get("SKILL_DIR", Path(__file__).parent.parent))
-TODAY = datetime.date.today().strftime("%Y-%m-%d")
+# 用北京时间（GitHub Actions runner 是 UTC）
+from datetime import timezone, timedelta
+TODAY = datetime.datetime.now(timezone(timedelta(hours=8))).date().strftime("%Y-%m-%d")
 LOG_FILE = SKILL_DIR / "logs" / f"daily_{TODAY}.log"
 
 def log(msg: str):
-    ts = datetime.datetime.now().strftime("%H:%M:%S")
+    # 用北京时间
+    ts = datetime.datetime.now(timezone(timedelta(hours=8))).strftime("%H:%M:%S")
     line = f"[{ts}] {msg}"
     print(line, flush=True)
     LOG_FILE.parent.mkdir(parents=True, exist_ok=True)

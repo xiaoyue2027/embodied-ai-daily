@@ -54,7 +54,10 @@ MARKETING_KEYWORDS = ["发布会", "联名", "跨界", "KOL", "营销", "广告"
 # ---------------------- 工具函数 ----------------------
 
 def now_str() -> str:
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    """北京时间（UTC+8），避免 GitHub Actions runner（UTC）显示早 8 小时"""
+    from datetime import timedelta, timezone
+    beijing = datetime.now(timezone(timedelta(hours=8)))
+    return beijing.strftime("%Y-%m-%d %H:%M:%S")
 
 
 def ensure_dir(p: Path) -> None:
@@ -274,7 +277,9 @@ def render_markdown(
 
 def main():
     ap = argparse.ArgumentParser(description="具身智能日报 - 主调度")
-    ap.add_argument("--date", default=datetime.now().strftime("%Y-%m-%d"), help="日报日期 (YYYY-MM-DD)")
+    from datetime import timedelta, timezone
+    beijing_today = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
+    ap.add_argument("--date", default=beijing_today, help="日报日期 (YYYY-MM-DD)")
     ap.add_argument("--input", default="", help="WebSearch 结果 JSON 路径（可选）")
     ap.add_argument("--no-browser", action="store_true", help="跳过 Playwright 抓取")
     ap.add_argument("--no-websearch", action="store_true", help="跳过 WebSearch（仅 Playwright）")
