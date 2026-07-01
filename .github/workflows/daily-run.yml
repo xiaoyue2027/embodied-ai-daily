@@ -132,12 +132,15 @@ jobs:
         if: ${{ inputs.push_pdf == 'file' }}
         env:
           WECHAT_WORK_WEBHOOK: ${{ secrets.WECHAT_WORK_WEBHOOK }}
+          DAILY_REPORTS_DIR: ${{ github.workspace }}/daily_reports
         run: |
-          python scripts/run_daily.py \
-            --input /tmp/websearch_today.json \
-            --no-browser \
-            --date "${{ env.DATE }}" \
-            --push wechat_work --push-pdf 2>&1 | tail -10
+          # 直接用 push.py 上传并发送 PDF（不嵌套 run_daily.py）
+          python scripts/push.py \
+            --channel wechat_work \
+            --mode file \
+            --file "${{ github.workspace }}/daily_reports/embodied_ai_${{ env.DATE }}.pdf" \
+            --filename "具身智能日报-${{ env.DATE }}.pdf" \
+            --webhook "$WECHAT_WORK_WEBHOOK" 2>&1 | tail -10
           echo "⚠️ 注意：GitHub Actions IP 每次都变，可能被企业微信拦截"
 
       - name: 📤 上传日报为 Artifact
