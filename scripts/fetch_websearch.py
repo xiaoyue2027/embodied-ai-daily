@@ -133,14 +133,29 @@ def tavily_search(
         return json.loads(resp.read().decode("utf-8"))
 
 
+def _clean_source(domain: str) -> str:
+    """简化来源显示：去掉 www. 前缀"""
+    d = domain or ""
+    if d.startswith("www."):
+        d = d[4:]
+    return d
+
+
+def beijing_now():
+    """返回北京时间（UTC+8）"""
+    from datetime import timezone
+    return datetime.now(timezone(timedelta(hours=8)))
+
+
 def normalize_result(item: Dict[str, Any], section: str) -> Dict[str, Any]:
     """把 Tavily 结果转成日报所需的格式"""
     return {
         "title": item.get("title", "").strip(),
         "url": item.get("url", ""),
-        "source": _extract_domain(item.get("url", "")),
+        "source": _clean_source(_extract_domain(item.get("url", ""))),
         "summary": (item.get("content", "") or "").strip()[:300],
-        "date": datetime.now().strftime("%Y-%m-%d"),
+        # 用北京时间（避免 GitHub runner UTC 早 8 小时）
+        "date": beijing_now().strftime("%Y-%m-%d"),
         "section_hint": section,
     }
 
