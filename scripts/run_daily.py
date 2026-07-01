@@ -212,7 +212,14 @@ def render_markdown(
             url = it.get("url", "")
             # 重要性用 A 字符（避免 PDF 字体问题）
             stars = "A" * max(1, min(5, it.get("importance", 0) // 20 + 1))
-            lines.append(f"### {i}. [{title}]({url})（重要性：{stars}）")
+            # 检测是否是爆款（5W+/10万+ 阅读量）
+            hot_tag = ""
+            full_text = (title + " " + it.get("summary", "")).lower()
+            if any(k in full_text for k in ["10万+", "10万阅读", "十万+", "爆款"]):
+                hot_tag = " [爆款]"
+            elif any(k in full_text for k in ["5万+", "5万阅读", "5w+", "五万"]):
+                hot_tag = " [热文]"
+            lines.append(f"### {i}. [{title}]({url})（重要性：{stars}{hot_tag}）")
             lines.append("")
             if it.get("source"):
                 lines.append(f"- **来源**：{it['source']}")
