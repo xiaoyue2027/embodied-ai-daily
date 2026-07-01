@@ -212,13 +212,18 @@ def render_markdown(
             url = it.get("url", "")
             # 重要性用 A 字符（避免 PDF 字体问题）
             stars = "A" * max(1, min(5, it.get("importance", 0) // 20 + 1))
-            # 检测是否是爆款（5W+/10万+ 阅读量）
-            hot_tag = ""
+            # 多重热度标签：标题关键词 + Tavily score
+            tags = []
             full_text = (title + " " + it.get("summary", "")).lower()
             if any(k in full_text for k in ["10万+", "10万阅读", "十万+", "爆款"]):
-                hot_tag = " [爆款]"
-            elif any(k in full_text for k in ["5万+", "5万阅读", "5w+", "五万"]):
-                hot_tag = " [热文]"
+                tags.append("爆款")
+            if any(k in full_text for k in ["5万+", "5万阅读", "5w+", "五万"]):
+                tags.append("热文")
+            # Tavily score（相关性分数）反映热度
+            heat_tag_from_score = it.get("heat_tag", "").strip("[]")
+            if heat_tag_from_score and heat_tag_from_score not in tags:
+                tags.append(heat_tag_from_score)
+            hot_tag = " [" + "][".join(tags) + "]" if tags else ""
             lines.append(f"### {i}. [{title}]({url})（重要性：{stars}{hot_tag}）")
             lines.append("")
             if it.get("source"):

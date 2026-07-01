@@ -155,6 +155,15 @@ def beijing_now():
 
 def normalize_result(item: Dict[str, Any], section: str) -> Dict[str, Any]:
     """把 Tavily 结果转成日报所需的格式"""
+    # Tavily score 0-1：≥0.8 通常是高热度
+    score = float(item.get("score", 0) or 0)
+    heat_tag = ""
+    if score >= 0.9:
+        heat_tag = "[爆款]"
+    elif score >= 0.8:
+        heat_tag = "[高热度]"
+    elif score >= 0.7:
+        heat_tag = "[热]"
     return {
         "title": item.get("title", "").strip(),
         "url": item.get("url", ""),
@@ -163,6 +172,8 @@ def normalize_result(item: Dict[str, Any], section: str) -> Dict[str, Any]:
         # 用北京时间（避免 GitHub runner UTC 早 8 小时）
         "date": beijing_now().strftime("%Y-%m-%d"),
         "section_hint": section,
+        "score": score,
+        "heat_tag": heat_tag,
     }
 
 
