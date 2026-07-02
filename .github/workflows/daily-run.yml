@@ -60,8 +60,10 @@ jobs:
       - name: 🔍 抓取当日信息（Tavily）
         env:
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+          TZ: Asia/Shanghai
         run: |
           echo "🔑 TAVILY_API_KEY 长度: ${#TAVILY_API_KEY}"
+          echo "🌏 当前北京时间: $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S')"
           python scripts/fetch_websearch.py --output /tmp/websearch_today.json 2>&1 | tail -25
           echo "📊 抓取完成，文件大小："
           wc -c /tmp/websearch_today.json
@@ -75,9 +77,11 @@ jobs:
         env:
           WECHAT_WORK_WEBHOOK: ${{ secrets.WECHAT_WORK_WEBHOOK }}
           DAILY_REPORTS_DIR: ${{ github.workspace }}/daily_reports
+          TZ: Asia/Shanghai
         run: |
           mkdir -p "$DAILY_REPORTS_DIR"
-          DATE="${DATE:-$(date +%Y-%m-%d)}"
+          # 显式用北京时间（虽然 TZ=Asia/Shanghai 已生效，再加一层保险）
+          DATE="${DATE:-$(TZ=Asia/Shanghai date +%Y-%m-%d)}"
           echo "DATE=$DATE" >> $GITHUB_ENV
           PUSH_FLAG=""
           PUSH_PDF_FLAG=""
@@ -142,6 +146,14 @@ jobs:
             --filename "具身智能日报-${{ env.DATE }}.pdf" \
             --webhook "$WECHAT_WORK_WEBHOOK" 2>&1 | tail -10
           echo "⚠️ 注意：GitHub Actions IP 每次都变，可能被企业微信拦截"
+
+      - name: 🗄 归档日报到 monthly 目录
+        env:
+          TZ: Asia/Shanghai
+        run: |
+          MONTH=$(TZ=Asia/Shanghai date +%Y-%m)
+          echo "📁 归档到 monthly/$MONTH/"
+          python scripts/archive.py --month "$MONTH" 2>&1 | tail -5
 
       - name: 📤 上传日报为 Artifact
         uses: actions/upload-artifact@v4
