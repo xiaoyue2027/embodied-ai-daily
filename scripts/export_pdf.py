@@ -58,13 +58,13 @@ def find_emoji_fonts() -> List[str]:
 def build_css(fonts: List[str]) -> str:
     """构造内联 CSS"""
     if fonts:
-        font_family = ', '.join(f'"{Path(f).name}"' for f in fonts[:3])
+        # 用字体 logical name（不带 .ttc 扩展名），保证 WeasyPrint 能正确识别
+        font_family = ', '.join(f'"{Path(f).stem.replace("-Regular","")}"' for f in fonts[:3])
     else:
         font_family = '"DejaVu Sans", sans-serif'
 
     # 拼接 emoji 字体 fallback（让 ★ ⭐ 🏭 等符号能正常显示）
     emoji_fonts = [
-        '"/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf"',
         '"Noto Color Emoji"',
         '"Apple Color Emoji"',
         '"Segoe UI Emoji"',
@@ -99,8 +99,20 @@ def build_css(fonts: List[str]) -> str:
 body {{
     font-family: {font_family};
     color: #1a1a1a;
-    line-height: 1.7;
-    font-size: 11pt;
+    line-height: 1.6;
+    font-size: 10.5pt;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}}
+
+p, li, blockquote, h1, h2, h3, h4 {{
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+}}
+
+ul, ol {{
+    padding-left: 22px;
 }}
 
 h1 {{
